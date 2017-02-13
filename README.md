@@ -1,1 +1,0 @@
-# Cohomology-of-linear-orders
