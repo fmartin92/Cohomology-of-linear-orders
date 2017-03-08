@@ -3,48 +3,60 @@ from sage.combinat.subset import SubsetsSorted
 
 ####basic methods
 
-def basis(n, k):
-    """Returns a basis for Lk(n)"""
-    parts = Compositions(n, length=k).list()
-    perms = Permutations(n).list()
-    basis = []
-    for part in parts:
-        for perm in perms:
-            basic_elt = []
-            i = 0
-            for term in part:
-                basic_elt.append(perm[i:i+term])
-                i += term
-            basis.append(basic_elt)
-    return basis 
-             
-def complex(n):
-    """Returns an array containing bases of Lk(n) for 0<k<=n"""
-    return [basis(n, i) for i in range(1,n+1)]
-    
-def comult(part):
-    return [[list(set), [x for x in part if x not in set]] \
-    for set in SubsetsSorted(part)][1:-1]
+def fact(n):
+    if n == 0:
+        return 1
+    else:
+        return n*fact(n-1)
 
+def basis(n, deg):
+    """Returns the standard basis for L(deg-1)(n)"""
+    b = []
+    for comp in Compositions(n, length=1+deg):    
+        for perm in Permutations(n):
+            cur = []
+            ind = 0
+            for i in range(1+deg):
+                 cur.append(perm[ind:ind+comp[i]])
+                 ind += comp[i]
+            b.append(cur)
+    return b
+
+def comult(elt):
+    """Comultiply a basic element of L0(n)"""
+    res = []
+    n = len(elt)
+    r = range(n)
+    for sset in sage.combinat.subset.SubsetsSorted(r):
+        if len(sset) != 0 and len(sset) != n:
+            comp = [i for i in r if i not in sset]
+            res.append([[elt[i] for i in sset], [elt[i] for i in comp]])
+    return res
+    
+def complex(n):
+    return [basis(n, i) for i in range(n)]
+    
 def differentiate(elt, compl):
-    length = len(elt)
+    """Returns the coordinates of the differential of basic element elt,
+    in terms of the basis for the complex given by compl"""
+    n = len(elt)
+    codomainBasis = compl[n]
+    res = [0 for _ in range(len(codomainBasis))]
     sign = 1
-    basis = compl[length]
-    diff = [0]*len(basis)
-    for i in range(length):
+    for i in range(n):
         if len(elt[i]) != 1:
-            com = comult(elt[i])
-            for j in com:
-                new_elt = elt[:i] + j + elt[i+1:]
-                diff[basis.index(new_elt)] += sign
+            for term in comult(elt[i]):
+                cur = elt[:i] + term + elt[i+1:]
+                res[codomainBasis.index(cur)] += sign
         sign *= -1
-    return diff
+    return res
     
 def differential(n, compl):
-    mat = []
-    for elt in compl[n]:
-        mat.append(differentiate(elt, compl))
-    return matrix(mat).transpose()
+    """Returns the n-th differential matrix of the complex"""
+    rows = []
+    for basic_elt in compl[n]:
+        rows.append(differentiate(basic_elt, compl))
+    return matrix(rows).transpose()
 
 #example: calculating betti numbers for n=3
 #n = 3
